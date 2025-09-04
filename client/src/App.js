@@ -28,6 +28,8 @@ function App() {
   const [lastCompileTime, setLastCompileTime] = useState(null);
   const [examples, setExamples] = useState({});
   const [contractInfo, setContractInfo] = useState(null);
+  const [isDeploying, setIsDeploying] = useState(false);
+  const [availableFunctions, setAvailableFunctions] = useState([]);
   const editorRef = useRef(null);
 
   const handleEditorDidMount = (editor, monaco) => {
@@ -126,6 +128,102 @@ function App() {
     }
   };
 
+  const deployContract = async () => {
+    if (!code.trim()) {
+      setOutput('Error: No Compact code to deploy');
+      return;
+    }
+
+    setIsDeploying(true);
+    setOutput('🚀 Deploying contract to testnet using npm run deploy...\nThis may take a few minutes.');
+
+    try {
+      const response = await axios.post('/api/deploy', { code });
+      
+      if (response.data.success) {
+        let outputText = '✅ Deployment Successful!\n\n';
+        
+        if (response.data.output) {
+          outputText += '--- Deployment Output ---\n' + response.data.output + '\n\n';
+        }
+        
+        // Display available functions
+        if (response.data.functions && response.data.functions.length > 0) {
+          outputText += '--- Available Functions ---\n';
+          response.data.functions.forEach(func => {
+            outputText += `• ${func.displayName || func.name}\n`;
+          });
+          outputText += '\nYou can now execute these functions using the buttons below.\n\n';
+          
+          setAvailableFunctions(response.data.functions);
+        }
+        
+        if (response.data.errors && response.data.errors.length > 0) {
+          outputText += '--- Warnings ---\n' + response.data.errors.join('\n') + '\n\n';
+        }
+        
+        outputText += `⏱️ Deployed at ${new Date().toLocaleTimeString()}`;
+        
+        setOutput(outputText);
+        setLastCompileTime(new Date().toLocaleTimeString());
+      } else {
+        let errorText = '❌ Deployment Failed\n\n';
+        
+        if (response.data.errors && response.data.errors.length > 0) {
+          errorText += '--- Errors ---\n' + response.data.errors.join('\n') + '\n\n';
+        }
+        
+        if (response.data.output) {
+          errorText += '--- Deployment Output ---\n' + response.data.output;
+        }
+        
+        setOutput(errorText);
+      }
+    } catch (error) {
+      let errorMessage = '❌ Deployment Error\n\n';
+      
+      if (error.response && error.response.data) {
+        const errorData = error.response.data;
+        errorMessage += `Error: ${errorData.error}\n`;
+        
+        if (errorData.errors && errorData.errors.length > 0) {
+          errorMessage += '\nDetails:\n' + errorData.errors.join('\n');
+        }
+      } else {
+        errorMessage += `Network Error: ${error.message}`;
+      }
+      
+      setOutput(errorMessage);
+    } finally {
+      setIsDeploying(false);
+    }
+  };
+
+  const executeFunction = async (functionName) => {
+    setOutput(`🔄 Executing function: ${functionName}...`);
+
+    try {
+      const response = await axios.post('/api/execute', { 
+        functionName,
+        args: [] // For now, no arguments
+      });
+      
+      if (response.data.success) {
+        let outputText = `✅ Function ${functionName} executed successfully!\n\n`;
+        outputText += response.data.output;
+        setOutput(outputText);
+      } else {
+        let errorText = `❌ Function ${functionName} execution failed\n\n`;
+        if (response.data.errors) {
+          errorText += response.data.errors.join('\n');
+        }
+        setOutput(errorText);
+      }
+    } catch (error) {
+      setOutput(`❌ Error executing function ${functionName}: ${error.message}`);
+    }
+  };
+
   const loadExamples = async () => {
     try {
       const response = await axios.get('/api/examples');
@@ -193,19 +291,36 @@ function App() {
             ))}
           </div>
           <button 
-            className="btn btn-success" 
+            className="btn" 
             onClick={compileCode}
-            disabled={isCompiling}
+            disabled={isCompiling || isDeploying}
           >
             {isCompiling ? (
               <>
                 <div className="spinner"></div>
-                Compiling...
+                Updating...
+              </>
+            ) : (
+              <>
+                <Code size={16} />
+                Update Contract
+              </>
+            )}
+          </button>
+          <button 
+            className="btn btn-success" 
+            onClick={deployContract}
+            disabled={isCompiling || isDeploying}
+          >
+            {isDeploying ? (
+              <>
+                <div className="spinner"></div>
+                Deploying...
               </>
             ) : (
               <>
                 <Play size={16} />
-                Compile Contract
+                Deploy & Run
               </>
             )}
           </button>
@@ -253,7 +368,29 @@ function App() {
           <div className="panel-header">
             <Terminal size={14} />
             Output
+            {availableFunctions.length > 0 && (
+              <span className="function-count">({availableFunctions.length} functions available)</span>
+            )}
           </div>
+          
+          {/* Function execution buttons */}
+          {availableFunctions.length > 0 && (
+            <div className="function-buttons">
+              <div className="function-header">Available Functions:</div>
+              {availableFunctions.map((func, index) => (
+                <button
+                  key={index}
+                  className="btn function-btn"
+                  onClick={() => executeFunction(func.name)}
+                  disabled={isDeploying}
+                  title={func.description}
+                >
+                  {func.displayName || func.name}
+                </button>
+              ))}
+            </div>
+          )}
+          
           <div className="output-content">
             {output ? (
               <div className={output.startsWith('Error:') ? 'output-error' : 'output-success'}>

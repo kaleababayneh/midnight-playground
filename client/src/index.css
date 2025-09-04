@@ -66,6 +66,44 @@ body {
   background: #505050;
 }
 
+.function-buttons {
+  background: #2d2d30;
+  padding: 12px;
+  border-bottom: 1px solid #3e3e42;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.function-header {
+  font-size: 12px;
+  font-weight: 600;
+  color: #cccccc;
+  margin-right: 12px;
+}
+
+.function-btn {
+  background: #16a085;
+  font-size: 12px;
+  padding: 6px 12px;
+}
+
+.function-btn:hover {
+  background: #1abc9c;
+}
+
+.function-btn:disabled {
+  background: #666;
+  cursor: not-allowed;
+}
+
+.function-count {
+  font-size: 11px;
+  color: #888;
+  margin-left: 8px;
+}
+
 .btn {
   background: #0e639c;
   color: white;

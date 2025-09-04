@@ -1,7 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
-const { CompactCompiler } = require('./compact-compiler');
+const { WorkspaceManager } = require('./workspace-manager');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -10,13 +10,13 @@ const PORT = process.env.PORT || 3001;
 app.use(cors());
 app.use(bodyParser.json({ limit: '10mb' }));
 
-// Initialize Compact compiler
-const compiler = new CompactCompiler();
+// Initialize Workspace Manager
+const workspaceManager = new WorkspaceManager();
 
 // Routes
 app.post('/api/compile', async (req, res) => {
   try {
-    const { code, options = {} } = req.body;
+    const { code } = req.body;
     
     if (!code) {
       return res.status(400).json({ 
@@ -25,17 +25,19 @@ app.post('/api/compile', async (req, res) => {
       });
     }
 
-    console.log('Compiling Compact code...');
-    const result = await compiler.compile(code, options);
+    console.log('Updating contract code...');
+    await workspaceManager.updateContract(code);
     
-    res.json(result);
+    res.json({
+      success: true,
+      message: 'Contract updated successfully. Use deploy to compile and deploy.',
+      timestamp: Date.now()
+    });
   } catch (error) {
-    console.error('Compilation error:', error);
+    console.error('Contract update error:', error);
     res.status(500).json({
       success: false,
-      error: error.message,
-      output: '',
-      errors: [error.message]
+      error: error.message
     });
   }
 });
@@ -43,7 +45,7 @@ app.post('/api/compile', async (req, res) => {
 // Get example contracts
 app.get('/api/examples', (req, res) => {
   try {
-    const examples = compiler.getExampleContracts();
+    const examples = workspaceManager.getExampleContracts();
     res.json({
       success: true,
       examples
@@ -59,18 +61,43 @@ app.get('/api/examples', (req, res) => {
 // Execute contract function
 app.post('/api/execute', async (req, res) => {
   try {
-    const { functionCall } = req.body;
+    const { functionName, args } = req.body;
     
-    if (!functionCall || !functionCall.function) {
+    if (!functionName) {
       return res.status(400).json({
         success: false,
-        error: 'Function call information required'
+        error: 'Function name is required'
       });
     }
 
-    const result = await compiler.executeContract(functionCall);
+    console.log('Executing function:', functionName, 'with args:', args);
+    const result = await workspaceManager.executeFunction(functionName, args);
     res.json(result);
   } catch (error) {
+    console.error('Function execution error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+// Deploy contract (compile and deploy to testnet)
+app.post('/api/deploy', async (req, res) => {
+  try {
+    const { code } = req.body;
+    
+    if (code) {
+      // Update the contract code first
+      await workspaceManager.updateContract(code);
+    }
+
+    console.log('Deploying contract to testnet...');
+    const result = await workspaceManager.deploy();
+    
+    res.json(result);
+  } catch (error) {
+    console.error('Deployment error:', error);
     res.status(500).json({
       success: false,
       error: error.message
@@ -82,21 +109,9 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', message: 'Compact Midnight IDE Server with create-midnight-app integration running' });
 });
 
-// Cleanup on exit
-process.on('SIGINT', async () => {
-  console.log('Cleaning up...');
-  await compiler.cleanup();
-  process.exit(0);
-});
-
-process.on('SIGTERM', async () => {
-  console.log('Cleaning up...');
-  await compiler.cleanup();
-  process.exit(0);
-});
-
 // Start server
 app.listen(PORT, () => {
-  console.log(`🌙 Compact Midnight IDE Server with create-midnight-app integration running on port ${PORT}`);
-  console.log(`📦 Using create-midnight-app v2.1.7 for real Compact compilation`);
+  console.log(`🌙 Compact Midnight IDE Server running on port ${PORT}`);
+  console.log(`📦 Using workspace deployment with npm run deploy`);
+  console.log(`🚀 Ready to compile and deploy Compact contracts`);
 });

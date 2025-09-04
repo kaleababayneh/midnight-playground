@@ -49,6 +49,23 @@ body {
   align-items: center;
 }
 
+.example-buttons {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-right: 12px;
+}
+
+.example-buttons .btn {
+  background: #404040;
+  font-size: 12px;
+  padding: 6px 12px;
+}
+
+.example-buttons .btn:hover {
+  background: #505050;
+}
+
 .btn {
   background: #0e639c;
   color: white;

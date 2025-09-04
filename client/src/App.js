@@ -2,132 +2,156 @@ import React, { useState, useRef } from 'react';
 import Editor from '@monaco-editor/react';
 import axios from 'axios';
 import { Play, Moon, Code, Terminal } from 'lucide-react';
+import { configureCompactLanguage, compactExamples } from './monaco/compactLanguage';
 
-const EXAMPLE_CODE = `// Compact Midnight DSL Example
-// Variable declarations
-let x = 10
-let y = 20
-let name = "Midnight"
+const EXAMPLE_CODE =  `pragma language_version 0.16;
+import CompactStandardLibrary;
 
-// Arithmetic operations
-let sum = x + y
-let product = x * y
+export ledger count: Counter;
 
-// Print statements
-print "Hello from Compact Midnight!"
-print name
-print "Sum: " + sum
-print "Product: " + product
+export circuit increment(value: Uint<16>): [] {
+  count.increment(value);
+}
 
-// Built-in functions
-print "Square root of 16: " + sqrt(16)
-print "Absolute value of -5: " + abs(-5)
+export circuit decrement(value: Uint<16>): [] {
+  count.decrement(value);
+}
 
-// Reassignment
-x = x + 5
-print "Updated x: " + x`;
+export circuit get_count(): Uint<64> {
+  return count;
+}`;
 
 function App() {
   const [code, setCode] = useState(EXAMPLE_CODE);
   const [output, setOutput] = useState('');
   const [isCompiling, setIsCompiling] = useState(false);
   const [lastCompileTime, setLastCompileTime] = useState(null);
+  const [examples, setExamples] = useState({});
+  const [contractInfo, setContractInfo] = useState(null);
   const editorRef = useRef(null);
 
   const handleEditorDidMount = (editor, monaco) => {
     editorRef.current = editor;
     
-    // Simple configuration to avoid WebAssembly issues
     try {
-      // Configure Monaco editor for Compact Midnight
-      monaco.languages.register({ id: 'compact-midnight' });
+      // Configure Compact language using modular configuration
+      const configSuccess = configureCompactLanguage(monaco);
       
-      monaco.languages.setMonarchTokensProvider('compact-midnight', {
-        tokenizer: {
-          root: [
-            [/\b(let|fn|print|if|else|while|for|return)\b/, 'keyword'],
-            [/\b(sqrt|abs|sin|cos|tan|log)\b/, 'keyword.function'],
-            [/"[^"]*"/, 'string'],
-            [/'[^']*'/, 'string'],
-            [/\b\d+(\.\d+)?\b/, 'number'],
-            [/\b[a-zA-Z_]\w*\b/, 'identifier'],
-            [/[+\-*/=<>!&|]/, 'operator'],
-            [/[{}()\[\]]/, 'bracket'],
-            [/\/\/.*$/, 'comment'],
-            [/#.*$/, 'comment'],
-          ],
-        },
-      });
-
-      monaco.editor.defineTheme('compact-midnight-theme', {
-        base: 'vs-dark',
-        inherit: true,
-        rules: [
-          { token: 'keyword', foreground: '569cd6' },
-          { token: 'keyword.function', foreground: 'dcdcaa' },
-          { token: 'string', foreground: 'ce9178' },
-          { token: 'number', foreground: 'b5cea8' },
-          { token: 'comment', foreground: '6a9955', fontStyle: 'italic' },
-          { token: 'identifier', foreground: '9cdcfe' },
-          { token: 'operator', foreground: 'd4d4d4' },
-        ],
-        colors: {
-          'editor.background': '#1e1e1e',
-          'editor.foreground': '#d4d4d4',
-          'editorLineNumber.foreground': '#858585',
-          'editor.selectionBackground': '#264f78',
-          'editor.inactiveSelectionBackground': '#3a3d41',
-        },
-      });
-
-      monaco.editor.setTheme('compact-midnight-theme');
+      if (!configSuccess) {
+        console.warn('Falling back to basic Monaco configuration');
+        // Set a basic theme as fallback
+        monaco.editor.setTheme('vs-dark');
+      }
     } catch (error) {
-      console.warn('Monaco configuration error:', error);
+      console.error('Error configuring Monaco editor:', error);
       // Fallback to basic configuration
+      monaco.editor.setTheme('vs-dark');
     }
   };
 
   const compileCode = async () => {
     if (!code.trim()) {
-      setOutput('Error: No code to compile');
+      setOutput('Error: No Compact code to compile');
       return;
     }
 
     setIsCompiling(true);
-    setOutput('Compiling...');
+    setOutput('🔨 Compiling Compact contract using create-midnight-app...\nThis may take a few moments for the first compilation.');
 
     try {
-      const response = await axios.post('/api/compile', { code });
+      const response = await axios.post('/api/compile', { 
+        code,
+        options: {
+          execute: false // Just compile for now
+        }
+      });
       
       if (response.data.success) {
-        const result = response.data.result;
-        let outputText = result.output || 'Compilation successful (no output)';
+        let outputText = '✅ Compilation Successful!\n\n';
         
-        if (Object.keys(result.variables).length > 0) {
-          outputText += '\n\n--- Variables ---\n';
-          for (const [name, value] of Object.entries(result.variables)) {
-            outputText += `${name}: ${value}\n`;
-          }
+        if (response.data.output) {
+          outputText += '--- Build Output ---\n' + response.data.output + '\n\n';
         }
+        
+        if (response.data.contractInfo && response.data.contractInfo.functions.length > 0) {
+          outputText += '--- Available Functions ---\n';
+          response.data.contractInfo.functions.forEach(func => {
+            outputText += `• ${func}()\n`;
+          });
+          outputText += '\n';
+          setContractInfo(response.data.contractInfo);
+          console.log('Contract info loaded:', response.data.contractInfo);
+          // Use contractInfo for future function execution features
+        }
+        
+        if (response.data.errors && response.data.errors.length > 0) {
+          outputText += '--- Warnings ---\n' + response.data.errors.join('\n') + '\n\n';
+        }
+        
+        outputText += `📦 Powered by create-midnight-app v2.1.7\n`;
+        outputText += `⏱️ Compiled at ${new Date().toLocaleTimeString()}`;
         
         setOutput(outputText);
         setLastCompileTime(new Date().toLocaleTimeString());
       } else {
-        setOutput(`Error: ${response.data.error}`);
+        let errorText = '❌ Compilation Failed\n\n';
+        
+        if (response.data.errors && response.data.errors.length > 0) {
+          errorText += '--- Errors ---\n' + response.data.errors.join('\n') + '\n\n';
+        }
+        
+        if (response.data.output) {
+          errorText += '--- Build Output ---\n' + response.data.output;
+        }
+        
+        setOutput(errorText);
       }
     } catch (error) {
+      let errorMessage = '❌ Compilation Error\n\n';
+      
       if (error.response && error.response.data) {
         const errorData = error.response.data;
-        let errorMessage = `Error: ${errorData.error}`;
-        if (errorData.line) {
-          errorMessage += ` (Line ${errorData.line})`;
+        errorMessage += `Error: ${errorData.error}\n`;
+        
+        if (errorData.errors && errorData.errors.length > 0) {
+          errorMessage += '\nDetails:\n' + errorData.errors.join('\n');
         }
-        setOutput(errorMessage);
       } else {
-        setOutput(`Network Error: ${error.message}`);
+        errorMessage += `Network Error: ${error.message}`;
       }
+      
+      setOutput(errorMessage);
     } finally {
       setIsCompiling(false);
+    }
+  };
+
+  const loadExamples = async () => {
+    try {
+      const response = await axios.get('/api/examples');
+      if (response.data.success) {
+        setExamples(response.data.examples);
+      }
+    } catch (error) {
+      console.warn('Could not load examples:', error);
+    }
+  };
+
+  const loadExample = (exampleName) => {
+    try {
+      // First try server examples, then fall back to local examples
+      if (examples && examples[exampleName]) {
+        setCode(examples[exampleName]);
+      } else if (compactExamples && compactExamples[exampleName]) {
+        setCode(compactExamples[exampleName]);
+      } else {
+        console.warn(`Example '${exampleName}' not found`);
+        return;
+      }
+      setOutput('');
+      setContractInfo(null);
+    } catch (error) {
+      console.error('Error loading example:', error);
     }
   };
 
@@ -138,6 +162,11 @@ function App() {
     }
   };
 
+  // Load examples on component mount
+  React.useEffect(() => {
+    loadExamples();
+  }, []);
+
   return (
     <div className="ide-container">
       <header className="header">
@@ -146,6 +175,23 @@ function App() {
           Compact Midnight IDE
         </h1>
         <div className="header-controls">
+          <div className="example-buttons">
+            {/* Combine server examples and local examples */}
+            {[...new Set([
+              ...(examples ? Object.keys(examples) : []),
+              ...(compactExamples ? Object.keys(compactExamples) : [])
+            ])].map(exampleName => (
+              <button 
+                key={exampleName}
+                className="btn"
+                onClick={() => loadExample(exampleName)}
+                disabled={isCompiling}
+                title={`Load ${exampleName} example`}
+              >
+                {exampleName.charAt(0).toUpperCase() + exampleName.slice(1)}
+              </button>
+            ))}
+          </div>
           <button 
             className="btn btn-success" 
             onClick={compileCode}
@@ -159,7 +205,7 @@ function App() {
             ) : (
               <>
                 <Play size={16} />
-                Run Code
+                Compile Contract
               </>
             )}
           </button>
@@ -175,13 +221,13 @@ function App() {
           <div className="editor-container">
             <Editor
               height="100%"
-              language="compact-midnight"
+              language="compact"
               value={code}
               onChange={setCode}
               onMount={handleEditorDidMount}
               onKeyDown={handleKeyDown}
               options={{
-                theme: 'vs-dark',
+                theme: 'compact-midnight-theme',
                 fontSize: 14,
                 lineNumbers: 'on',
                 roundedSelection: false,
@@ -216,16 +262,23 @@ function App() {
             ) : (
               <div className="output-info">
                 <div className="example-code">
-                  <h3>Welcome to Compact Midnight IDE!</h3>
-                  <p>Start writing your code in the editor, then click "Run Code" or press Ctrl+Enter to compile and execute.</p>
+                  <h3>🌙 Welcome to Compact Midnight IDE!</h3>
+                  <p>Write real Compact smart contracts and compile them using your create-midnight-app integration. Click "Compile Contract" or press Ctrl+Enter to build your contract.</p>
                   
-                  <h3 style={{ marginTop: '16px' }}>Language Features:</h3>
-                  <pre>{`• Variable declarations: let x = 10
-• Arithmetic: +, -, *, /
-• String literals: "hello" or 'world'
-• Print statements: print "text" or print(variable)
-• Built-in functions: sqrt(), abs()
-• Comments: // or #`}</pre>
+                  <h3 style={{ marginTop: '16px' }}>🚀 Powered by create-midnight-app v2.1.7</h3>
+                  <p>This IDE uses your create-midnight-app npm package for real Compact compilation, auto-generated CLIs, and deployment capabilities.</p>
+                  
+                  <h3 style={{ marginTop: '16px' }}>📝 Compact Language Features:</h3>
+                  <pre>{`• Pragma declarations: pragma language_version 0.15;
+• Imports: import CompactStandardLibrary;
+• Ledger state: export ledger count: Counter;
+• Circuit functions: export circuit increment(value: Uint<16>): []
+• Type system: Uint<16>, Counter, Vector<T>, Opaque<"string">
+• Standard library: increment(), decrement(), push(), pop()
+• Comments: // single line, /* multi line */`}</pre>
+                  
+                  <h3 style={{ marginTop: '16px' }}>🔧 Try the Examples:</h3>
+                  <p>Use the example buttons above to load pre-built contracts: Counter, Voting, and Message contracts.</p>
                 </div>
               </div>
             )}

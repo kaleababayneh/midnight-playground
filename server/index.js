@@ -7,7 +7,15 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: [
+    'http://localhost:3000',
+    'https://midnight-playground-one.vercel.app',
+    'https://midnight-playground.vercel.app',
+    'https://*.vercel.app' // Allow all Vercel subdomains
+  ],
+  credentials: true
+}));
 app.use(bodyParser.json({ limit: '10mb' }));
 
 // Initialize Workspace Manager

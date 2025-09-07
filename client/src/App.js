@@ -4,7 +4,11 @@ import axios from 'axios';
 import { Play, Moon, Code, Terminal } from 'lucide-react';
 import { configureCompactLanguage, compactExamples } from './monaco/compactLanguage';
 
-
+const NODE_ENV = process.env.NODE_ENV || 'production';
+// API Base URL - points to your actual backend server
+const API_BASE_URL = NODE_ENV === 'production' 
+  ? 'https://midnight.wego.pics' 
+  : 'http://localhost:3001';
 
 const CONTRACT_COMPACT = ""
 
@@ -74,7 +78,7 @@ function App() {
     setOutput('🔨 Compiling contract using create-midnight-app...\nThis may take a few moments for the first compilation.');
 
     try {
-      const response = await axios.post('/api/compile', { 
+      const response = await axios.post(`${API_BASE_URL}/api/compile`, { 
         contractCode: contractContent,
         witnessesCode: witnessesContent,
         options: {
@@ -154,7 +158,7 @@ function App() {
     setOutput('🚀 Compiling and building contract to testnet using npm run compile and npm run build...\nThis may take a few minutes.');
 
     try {
-      const response = await axios.post('/api/deploy', { 
+      const response = await axios.post(`${API_BASE_URL}/api/deploy`, { 
         contractCode: contractContent,
         witnessesCode: witnessesContent
       });
@@ -222,7 +226,7 @@ function App() {
     setOutput(`🔄 Executing function: ${functionName}...`);
 
     try {
-      const response = await axios.post('/api/execute', { 
+      const response = await axios.post(`${API_BASE_URL}/api/execute`, { 
         functionName,
         args: [] // For now, no arguments
       });
@@ -275,7 +279,7 @@ function App() {
 
   const loadExamples = async () => {
     try {
-      const response = await axios.get('/api/examples');
+      const response = await axios.get(`${API_BASE_URL}/api/examples`);
       if (response.data.success) {
         setExamples(response.data.examples);
       }

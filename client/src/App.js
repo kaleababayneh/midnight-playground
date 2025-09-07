@@ -5,6 +5,7 @@ import { Play, Moon, Code, Terminal } from 'lucide-react';
 import { configureCompactLanguage, compactExamples } from './monaco/compactLanguage';
 
 const NODE_ENV = 'production';
+
 // API Base URL - points to your actual backend server
 const API_BASE_URL = NODE_ENV === 'production' 
   ? 'https://midnight.wego.pics' 
@@ -244,30 +245,7 @@ function App() {
     }
   };
 
-  const executeFunction = async (functionName) => {
-    setOutput(`🔄 Executing function: ${functionName}...`);
 
-    try {
-      const response = await axios.post(`${API_BASE_URL}/api/execute`, { 
-        functionName,
-        args: [] // For now, no arguments
-      });
-      
-      if (response.data.success) {
-        let outputText = `✅ Function ${functionName} executed successfully!\n\n`;
-        outputText += response.data.output;
-        setOutput(outputText);
-      } else {
-        let errorText = `❌ Function ${functionName} execution failed\n\n`;
-        if (response.data.errors) {
-          errorText += response.data.errors.join('\n');
-        }
-        setOutput(errorText);
-      }
-    } catch (error) {
-      setOutput(`❌ Error executing function ${functionName}: ${error.message}`);
-    }
-  };
 
   // Function to extract just the essential Compact compiler error
   const extractCompactError = (errorText) => {
@@ -585,23 +563,7 @@ function App() {
             )}
           </div>
           
-          {/* Function execution buttons */}
-          {availableFunctions.length > 0 && (
-            <div className="function-buttons">
-              <div className="function-header">Available Functions:</div>
-              {availableFunctions.map((func, index) => (
-                <button
-                  key={index}
-                  className="btn function-btn"
-                  onClick={() => executeFunction(func.name)}
-                  disabled={isDeploying}
-                  title={func.description}
-                >
-                  {func.displayName || func.name}
-                </button>
-              ))}
-            </div>
-          )}
+      
           
           <div className="output-content">
             {output ? (

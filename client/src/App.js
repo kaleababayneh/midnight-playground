@@ -4,7 +4,7 @@ import axios from 'axios';
 import { Play, Moon, Code, Terminal } from 'lucide-react';
 import { configureCompactLanguage, compactExamples } from './monaco/compactLanguage';
 
-const NODE_ENV = process.env.NODE_ENV || 'production';
+const NODE_ENV = 'production';
 // API Base URL - points to your actual backend server
 const API_BASE_URL = NODE_ENV === 'production' 
   ? 'https://midnight.wego.pics' 
@@ -118,9 +118,7 @@ function App() {
           errorText += '--- Errors ---\n' + response.data.errors.join('\n') + '\n\n';
         }
         
-        if (response.data.output) {
-          errorText += '--- Build Output ---\n' + response.data.output;
-        }
+      
         
         setOutput(errorText);
       }

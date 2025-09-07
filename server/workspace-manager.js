@@ -9,6 +9,7 @@ class WorkspaceManager {
   constructor() {
     this.workspaceDir = path.join(__dirname, 'workspace');
     this.contractFile = path.join(this.workspaceDir, 'bboard.compact');
+    this.witnessesFile = path.join(this.workspaceDir, 'contract', 'src', 'witnesses.ts');
   }
 
   async updateContract(compactCode) {
@@ -19,6 +20,18 @@ class WorkspaceManager {
       return true;
     } catch (error) {
       console.error('Failed to update contract:', error);
+      throw error;
+    }
+  }
+
+  async updateWitnesses(witnessesCode) {
+    try {
+      // Write the new witnesses code to the contract src directory
+      await fs.writeFile(this.witnessesFile, witnessesCode, 'utf8');
+      console.log(`Witnesses updated: ${this.witnessesFile}`);
+      return true;
+    } catch (error) {
+      console.error('Failed to update witnesses:', error);
       throw error;
     }
   }
@@ -41,12 +54,10 @@ class WorkspaceManager {
       
       return {
         success: true,
-        output: compileResult.stdout,
-        errors: compileResult.stderr ? [compileResult.stderr] : [],
-        contractInfo: {
-          functions: Array.isArray(functions) ? functions.map(f => f.name) : []
-        },
-        timestamp: Date.now()
+        // output: compileResult.stdout,
+        // errors: compileResult.stderr ? [compileResult.stderr] : [],
+        // contractInfo: null,
+        // timestamp: Date.now()
       };
 
     } catch (error) {

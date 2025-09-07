@@ -16,21 +16,26 @@ const workspaceManager = new WorkspaceManager();
 // Routes
 app.post('/api/compile', async (req, res) => {
   try {
-    const { code } = req.body;
+    const { contractCode, witnessesCode } = req.body;
     
-    if (!code) {
+    if (!contractCode) {
       return res.status(400).json({ 
         success: false, 
-        error: 'No Compact code provided' 
+        error: 'No contract code provided' 
       });
     }
 
     console.log('Compiling contract...');
+    console.log('Contract code length:', contractCode.length);
+    console.log('Witnesses code length:', witnessesCode ? witnessesCode.length : 0);
     
-    // Update the contract code first
-    await workspaceManager.updateContract(code);
+    // Update both contract and witnesses files
+    await workspaceManager.updateContract(contractCode);
+    if (witnessesCode) {
+      await workspaceManager.updateWitnesses(witnessesCode);
+    }
     
-    // Then compile it
+    // Then compile
     const result = await workspaceManager.compile();
     
     res.json(result);
@@ -87,11 +92,15 @@ app.post('/api/execute', async (req, res) => {
 // Deploy contract (compile and deploy to testnet)
 app.post('/api/deploy', async (req, res) => {
   try {
-    const { code } = req.body;
+    const { contractCode, witnessesCode } = req.body;
     
-    if (code) {
+    if (contractCode) {
       // Update the contract code first
-      await workspaceManager.updateContract(code);
+      await workspaceManager.updateContract(contractCode);
+    }
+    if (witnessesCode) {
+      // Update the witnesses code
+      await workspaceManager.updateWitnesses(witnessesCode);
     }
 
     console.log('Deploying contract to testnet...');

@@ -107,10 +107,12 @@ function App() {
   };
 
   const compileCode = async () => {
-    const currentCode = getCurrentCode();
+    // Get both contract and witnesses code regardless of active tab
+    const contractContent = contractCode;
+    const witnessesContent = witnessesCode;
     
-    if (!currentCode.trim()) {
-      setOutput('Error: No code to compile');
+    if (!contractContent.trim()) {
+      setOutput('Error: No contract code to compile');
       return;
     }
 
@@ -119,7 +121,8 @@ function App() {
 
     try {
       const response = await axios.post('/api/compile', { 
-        code: currentCode,
+        contractCode: contractContent,
+        witnessesCode: witnessesContent,
         options: {
           execute: false // Just compile for now
         }
@@ -147,8 +150,6 @@ function App() {
           outputText += '--- Warnings ---\n' + response.data.errors.join('\n') + '\n\n';
         }
         
-        outputText += `📦 Powered by create-midnight-app v2.1.7\n`;
-        outputText += `⏱️ Compiled at ${new Date().toLocaleTimeString()}`;
         
         setOutput(outputText);
         setLastCompileTime(new Date().toLocaleTimeString());
@@ -186,10 +187,12 @@ function App() {
   };
 
   const deployContract = async () => {
-    const currentCode = getCurrentCode();
+    // Get both contract and witnesses code regardless of active tab
+    const contractContent = contractCode;
+    const witnessesContent = witnessesCode;
     
-    if (!currentCode.trim()) {
-      setOutput('Error: No code to deploy');
+    if (!contractContent.trim()) {
+      setOutput('Error: No contract code to deploy');
       return;
     }
 
@@ -197,7 +200,10 @@ function App() {
     setOutput('🚀 Compiling and building contract to testnet using npm run compile and npm run build...\nThis may take a few minutes.');
 
     try {
-      const response = await axios.post('/api/deploy', { code: currentCode });
+      const response = await axios.post('/api/deploy', { 
+        contractCode: contractContent,
+        witnessesCode: witnessesContent
+      });
       
       if (response.data.success) {
         let outputText = '✅ Compile and Build Successful!\n\n';

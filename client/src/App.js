@@ -4,25 +4,80 @@ import axios from 'axios';
 import { Play, Moon, Code, Terminal } from 'lucide-react';
 import { configureCompactLanguage, compactExamples } from './monaco/compactLanguage';
 
-const EXAMPLE_CODE =  `pragma language_version 0.17;
+
+
+const CONTRACT_COMPACT = `
+pragma language_version >= 0.16 && <= 0.17;
+
 import CompactStandardLibrary;
 
-export ledger count: Counter;
-
-export circuit increment(value: Uint<16>): [] {
-  count.increment(disclose(value));
+export enum State {
+  VACANT,
+  OCCUPIED
 }
 
-export circuit decrement(value: Uint<16>): [] {
-  count.decrement(disclose(value));
+export ledger state: State;
+
+export ledger message: Maybe<Opaque<"string">>;
+
+export ledger sequence: Counter;
+
+export ledger owner: Bytes<32>;
+
+constructor() {
+  state = State.VACANT;
+  message = none<Opaque<"string">>();
+  sequence.increment(1);
 }
 
-export circuit get_count(): Uint<64> {
-  return count;
+witness localSecretKey(): Bytes<32>;
+
+export circuit post(newMessage: Opaque<"string">): [] {
+  assert(state == State.VACANT, "Attempted to post to an occupied board");
+  owner = disclose(publicKey(localSecretKey(), sequence as Field as Bytes<32>));
+  message = disclose(some<Opaque<"string">>(newMessage));
+  state = State.OCCUPIED;
+}
+
+export circuit takeDown(): Opaque<"string"> {
+  assert(state == State.OCCUPIED, "Attempted to take down post from an empty board");
+  assert(owner == publicKey(localSecretKey(), sequence as Field as Bytes<32>), "Attempted to take down post, but not the current owner");
+  const formerMsg = message.value;
+  state = State.VACANT;
+  sequence.increment(1);
+  message = none<Opaque<"string">>();
+  return formerMsg;
+}
+
+export circuit publicKey(sk: Bytes<32>, sequence: Bytes<32>): Bytes<32> {
+  return persistentHash<Vector<3, Bytes<32>>>([pad(32, "bboard:pk:"), sequence, sk]);
 }`;
 
+const EXAMPLE_CODE = CONTRACT_COMPACT;
+const WITNESSES_TS = `import { Ledger } from "./managed/bboard/contract/index.cjs";
+import { WitnessContext } from "@midnight-ntwrk/compact-runtime";
+
+export type BBoardPrivateState = {
+  readonly secretKey: Uint8Array;
+};
+
+export const createBBoardPrivateState = (secretKey: Uint8Array) => ({
+  secretKey,
+});
+
+export const witnesses = {
+  localSecretKey: ({
+    privateState,
+  }: WitnessContext<Ledger, BBoardPrivateState>): [
+    BBoardPrivateState,
+    Uint8Array,
+  ] => [privateState, privateState.secretKey],
+}; `
+
 function App() {
-  const [code, setCode] = useState(EXAMPLE_CODE);
+  const [activeTab, setActiveTab] = useState('contract');
+  const [contractCode, setContractCode] = useState(CONTRACT_COMPACT);
+  const [witnessesCode, setWitnessesCode] = useState(WITNESSES_TS);
   const [output, setOutput] = useState('');
   const [isCompiling, setIsCompiling] = useState(false);
   const [lastCompileTime, setLastCompileTime] = useState(null);
@@ -52,17 +107,19 @@ function App() {
   };
 
   const compileCode = async () => {
-    if (!code.trim()) {
-      setOutput('Error: No Compact code to compile');
+    const currentCode = getCurrentCode();
+    
+    if (!currentCode.trim()) {
+      setOutput('Error: No code to compile');
       return;
     }
 
     setIsCompiling(true);
-    setOutput('🔨 Compiling Compact contract using create-midnight-app...\nThis may take a few moments for the first compilation.');
+    setOutput('🔨 Compiling contract using create-midnight-app...\nThis may take a few moments for the first compilation.');
 
     try {
       const response = await axios.post('/api/compile', { 
-        code,
+        code: currentCode,
         options: {
           execute: false // Just compile for now
         }
@@ -129,22 +186,24 @@ function App() {
   };
 
   const deployContract = async () => {
-    if (!code.trim()) {
-      setOutput('Error: No Compact code to deploy');
+    const currentCode = getCurrentCode();
+    
+    if (!currentCode.trim()) {
+      setOutput('Error: No code to deploy');
       return;
     }
 
     setIsDeploying(true);
-    setOutput('🚀 Deploying contract to testnet using npm run deploy...\nThis may take a few minutes.');
+    setOutput('🚀 Compiling and building contract to testnet using npm run compile and npm run build...\nThis may take a few minutes.');
 
     try {
-      const response = await axios.post('/api/deploy', { code });
+      const response = await axios.post('/api/deploy', { code: currentCode });
       
       if (response.data.success) {
-        let outputText = '✅ Deployment Successful!\n\n';
-        
+        let outputText = '✅ Compile and Build Successful!\n\n';
+
         if (response.data.output) {
-          outputText += '--- Deployment Output ---\n' + response.data.output + '\n\n';
+          outputText += '--- Compile and Build Output ---\n' + response.data.output + '\n\n';
         }
         
         // Display available functions
@@ -167,14 +226,14 @@ function App() {
         setOutput(outputText);
         setLastCompileTime(new Date().toLocaleTimeString());
       } else {
-        let errorText = '❌ Deployment Failed\n\n';
-        
+        let errorText = '❌ Compile and Build Failed\n\n';
+
         if (response.data.errors && response.data.errors.length > 0) {
           errorText += '--- Errors ---\n' + response.data.errors.join('\n') + '\n\n';
         }
         
         if (response.data.output) {
-          errorText += '--- Deployment Output ---\n' + response.data.output;
+          errorText += '--- Compile and Build Output ---\n' + response.data.output;
         }
         
         setOutput(errorText);
@@ -224,6 +283,36 @@ function App() {
     }
   };
 
+  const getCurrentCode = () => {
+    switch (activeTab) {
+      case 'contract':
+        return contractCode;
+      case 'witnesses':
+        return witnessesCode;
+      default:
+        return contractCode;
+    }
+  };
+
+  const getCurrentLanguage = () => {
+    switch (activeTab) {
+      case 'contract':
+        return 'compact';
+      case 'witnesses':
+        return 'typescript';
+      default:
+        return 'compact';
+    }
+  };
+
+  const handleCodeChange = (value) => {
+    if (activeTab === 'contract') {
+      setContractCode(value);
+    } else if (activeTab === 'witnesses') {
+      setWitnessesCode(value);
+    }
+  };
+
   const loadExamples = async () => {
     try {
       const response = await axios.get('/api/examples');
@@ -239,9 +328,9 @@ function App() {
     try {
       // First try server examples, then fall back to local examples
       if (examples && examples[exampleName]) {
-        setCode(examples[exampleName]);
+        setContractCode(examples[exampleName]);
       } else if (compactExamples && compactExamples[exampleName]) {
-        setCode(compactExamples[exampleName]);
+        setContractCode(compactExamples[exampleName]);
       } else {
         console.warn(`Example '${exampleName}' not found`);
         return;
@@ -282,7 +371,10 @@ function App() {
               <button 
                 key={exampleName}
                 className="btn"
-                onClick={() => loadExample(exampleName)}
+                onClick={() => {
+                  loadExample(exampleName);
+                  setActiveTab('contract'); // Switch to contract tab when loading example
+                }}
                 disabled={isCompiling}
                 title={`Load ${exampleName} example`}
               >
@@ -298,12 +390,12 @@ function App() {
             {isCompiling ? (
               <>
                 <div className="spinner"></div>
-                Updating...
+                Compiling...
               </>
             ) : (
               <>
                 <Code size={16} />
-                Update Contract
+                Compile Contract
               </>
             )}
           </button>
@@ -315,12 +407,12 @@ function App() {
             {isDeploying ? (
               <>
                 <div className="spinner"></div>
-                Deploying...
+                Building...
               </>
             ) : (
               <>
                 <Play size={16} />
-                Deploy & Run
+                Compile & Build
               </>
             )}
           </button>
@@ -330,15 +422,29 @@ function App() {
       <main className="main-content">
         <div className="editor-panel">
           <div className="panel-header">
-            <Code size={14} />
-            Editor (Ctrl+Enter to run)
+            <div className="tab-container">
+              <button
+                className={`tab ${activeTab === 'contract' ? 'active' : ''}`}
+                onClick={() => setActiveTab('contract')}
+              >
+                <Code size={14} />
+                contract.compact
+              </button>
+              <button
+                className={`tab ${activeTab === 'witnesses' ? 'active' : ''}`}
+                onClick={() => setActiveTab('witnesses')}
+              >
+                <Code size={14} />
+                witnesses.ts
+              </button>
+            </div>
           </div>
           <div className="editor-container">
             <Editor
               height="100%"
-              language="compact"
-              value={code}
-              onChange={setCode}
+              language={getCurrentLanguage()}
+              value={getCurrentCode()}
+              onChange={handleCodeChange}
               onMount={handleEditorDidMount}
               onKeyDown={handleKeyDown}
               options={{
@@ -359,6 +465,7 @@ function App() {
                 folding: false,
                 links: false,
                 hover: { enabled: false },
+                // Both tabs are now editable
               }}
             />
           </div>

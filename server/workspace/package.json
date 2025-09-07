@@ -15,6 +15,7 @@
   },
   "scripts": {
     "contract": "cp bboard.compact contract/src/bboard.compact && cd contract && npm run compact && npm run build",
+    "compile": "cp bboard.compact contract/src/bboard.compact && cd contract && npm run compact",
     "cli": "cd bboard-cli && npm run testnet-remote",
     "deploy": "npm run contract && npm run cli"
   },

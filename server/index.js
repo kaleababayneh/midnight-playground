@@ -25,19 +25,21 @@ app.post('/api/compile', async (req, res) => {
       });
     }
 
-    console.log('Updating contract code...');
+    console.log('Compiling contract...');
+    
+    // Update the contract code first
     await workspaceManager.updateContract(code);
     
-    res.json({
-      success: true,
-      message: 'Contract updated successfully. Use deploy to compile and deploy.',
-      timestamp: Date.now()
-    });
+    // Then compile it
+    const result = await workspaceManager.compile();
+    
+    res.json(result);
   } catch (error) {
-    console.error('Contract update error:', error);
+    console.error('Compilation error:', error);
     res.status(500).json({
       success: false,
-      error: error.message
+      error: error.message,
+      timestamp: Date.now()
     });
   }
 });

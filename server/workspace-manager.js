@@ -23,12 +23,63 @@ class WorkspaceManager {
     }
   }
 
+  async compile() {
+    try {
+      console.log('Starting compilation in workspace...');
+      
+      // Compile the contract using npm run compile (which just compiles, doesn't build)
+      const compileResult = await execAsync('npm run compile', {
+        cwd: this.workspaceDir,
+        timeout: 60000, // 1 minute timeout
+        maxBuffer: 1024 * 1024 // 1MB buffer for output
+      });
+
+      console.log('Contract compiled successfully');
+
+      // Parse the output to extract function information
+      const functions = await this.parseFunctionsFromContract();
+      
+      return {
+        success: true,
+        output: compileResult.stdout,
+        errors: compileResult.stderr ? [compileResult.stderr] : [],
+        contractInfo: {
+          functions: Array.isArray(functions) ? functions.map(f => f.name) : []
+        },
+        timestamp: Date.now()
+      };
+
+    } catch (error) {
+      console.error('Compilation failed:', error);
+      
+      // Extract detailed error information
+      let errorMessages = [];
+      if (error.stderr) {
+        errorMessages.push(error.stderr);
+      }
+      if (error.stdout && error.stdout.includes('Exception:')) {
+        errorMessages.push(error.stdout);
+      }
+      if (errorMessages.length === 0) {
+        errorMessages.push(error.message);
+      }
+      
+      return {
+        success: false,
+        output: error.stdout || '',
+        errors: errorMessages,
+        contractInfo: null,
+        timestamp: Date.now()
+      };
+    }
+  }
+
   async deploy() {
     try {
       console.log('Starting deployment in workspace...');
       
        // First compile the contract
-      const compileResult = await execAsync('npm run contract && npm run build', {
+      const compileResult = await execAsync('npm run contract', {
         cwd: this.workspaceDir,
         timeout: 60000, // 1 minute timeout
         maxBuffer: 1024 * 1024 // 1MB buffer for output
@@ -315,25 +366,51 @@ class WorkspaceManager {
 
   getExampleContracts() {
     return {
-      bboard: `pragma language_version 0.17;
+      bboard: `
+pragma language_version >= 0.16 && <= 0.17;
+
 import CompactStandardLibrary;
 
-export ledger count: Counter;
-
-export circuit increment(value: Uint<16>): [] {
-  count.increment(disclose(value));
+export enum State {
+  VACANT,
+  OCCUPIED
 }
 
-export circuit decrement(value: Uint<16>): [] {
-  count.decrement(disclose(value));
+export ledger state: State;
+
+export ledger message: Maybe<Opaque<"string">>;
+
+export ledger sequence: Counter;
+
+export ledger owner: Bytes<32>;
+
+constructor() {
+  state = State.VACANT;
+  message = none<Opaque<"string">>();
+  sequence.increment(1);
 }
 
-export circuit reset(): Bytes<19> {
-  return "False Counter reset";
+witness localSecretKey(): Bytes<32>;
+
+export circuit post(newMessage: Opaque<"string">): [] {
+  assert(state == State.VACANT, "Attempted to post to an occupied board");
+  owner = disclose(publicKey(localSecretKey(), sequence as Field as Bytes<32>));
+  message = disclose(some<Opaque<"string">>(newMessage));
+  state = State.OCCUPIED;
 }
 
-export circuit get_count(): Uint<64> {
-  return count;
+export circuit takeDown(): Opaque<"string"> {
+  assert(state == State.OCCUPIED, "Attempted to take down post from an empty board");
+  assert(owner == publicKey(localSecretKey(), sequence as Field as Bytes<32>), "Attempted to take down post, but not the current owner");
+  const formerMsg = message.value;
+  state = State.VACANT;
+  sequence.increment(1);
+  message = none<Opaque<"string">>();
+  return formerMsg;
+}
+
+export circuit publicKey(sk: Bytes<32>, sequence: Bytes<32>): Bytes<32> {
+  return persistentHash<Vector<3, Bytes<32>>>([pad(32, "bboard:pk:"), sequence, sk]);
 }`,
 
       counter: `pragma language_version 0.17;

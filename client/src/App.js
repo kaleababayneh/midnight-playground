@@ -44,6 +44,8 @@ function App() {
   const [contractInfo, setContractInfo] = useState(null);
   const [isDeploying, setIsDeploying] = useState(false);
   const [availableFunctions, setAvailableFunctions] = useState([]);
+  const [leftPanelWidth, setLeftPanelWidth] = useState(60); // Percentage
+  const [isDragging, setIsDragging] = useState(false);
   const editorRef = useRef(null);
 
   const handleEditorDidMount = (editor, monaco) => {
@@ -396,6 +398,40 @@ function App() {
     }
   };
 
+  // Drag handlers for resizable panels
+  const handleMouseDown = (e) => {
+    setIsDragging(true);
+    e.preventDefault();
+  };
+
+  const handleMouseMove = (e) => {
+    if (!isDragging) return;
+    
+    const containerWidth = window.innerWidth;
+    const newLeftWidth = (e.clientX / containerWidth) * 100;
+    
+    // Constrain between 20% and 80%
+    const constrainedWidth = Math.min(80, Math.max(20, newLeftWidth));
+    setLeftPanelWidth(constrainedWidth);
+  };
+
+  const handleMouseUp = () => {
+    setIsDragging(false);
+  };
+
+  // Add event listeners for mouse events
+  React.useEffect(() => {
+    if (isDragging) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+      
+      return () => {
+        document.removeEventListener('mousemove', handleMouseMove);
+        document.removeEventListener('mouseup', handleMouseUp);
+      };
+    }
+  }, [isDragging]);
+
   const loadExamples = async () => {
     try {
       const response = await axios.get(`${API_BASE_URL}/api/examples`);
@@ -502,8 +538,8 @@ function App() {
         </div>
       </header>
 
-      <main className="main-content">
-        <div className="editor-panel">
+      <main className="main-content" style={{ display: 'flex', height: '100%' }}>
+        <div className="editor-panel" style={{ width: `${leftPanelWidth}%`, minWidth: '200px' }}>
           <div className="panel-header">
             <div className="tab-container">
               <button
@@ -554,7 +590,22 @@ function App() {
           </div>
         </div>
 
-        <div className="output-panel">
+        {/* Resizer */}
+        <div 
+          className="resizer"
+          onMouseDown={handleMouseDown}
+          style={{
+            width: '4px',
+            background: isDragging ? '#007acc' : '#3c3c3c',
+            cursor: 'col-resize',
+            userSelect: 'none',
+            borderLeft: '1px solid #2d2d2d',
+            borderRight: '1px solid #2d2d2d',
+            transition: isDragging ? 'none' : 'background 0.2s ease'
+          }}
+        />
+
+        <div className="output-panel" style={{ width: `${100 - leftPanelWidth}%`, minWidth: '200px' }}>
           <div className="panel-header">
             <Terminal size={14} />
             Output

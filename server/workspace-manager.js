@@ -28,13 +28,13 @@ class WorkspaceManager {
       console.log('Starting deployment in workspace...');
       
        // First compile the contract
-      const compileResult = await execAsync('npm run contract', {
+      const compileResult = await execAsync('npm run contract && npm run build', {
         cwd: this.workspaceDir,
         timeout: 60000, // 1 minute timeout
         maxBuffer: 1024 * 1024 // 1MB buffer for output
       });
 
-      console.log('Contract compiled successfully');
+      console.log('Contract compiled & built successfully');
 
       // Then run the CLI with automatic exit
       //const cliResult = await this.runCLIWithAutoExit();

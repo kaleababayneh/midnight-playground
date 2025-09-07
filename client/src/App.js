@@ -115,10 +115,15 @@ function App() {
         let errorText = '❌ Compilation Failed\n\n';
         
         if (response.data.errors && response.data.errors.length > 0) {
-          errorText += '--- Errors ---\n' + response.data.errors.join('\n') + '\n\n';
+          // Extract just the essential Compact error instead of showing full output
+          const fullError = response.data.errors.join('\n');
+          const compactError = extractCompactError(fullError);
+          errorText += compactError;
+        } else if (response.data.output) {
+          // Also try to extract error from output if no specific errors array
+          const compactError = extractCompactError(response.data.output);
+          errorText += compactError;
         }
-        
-      
         
         setOutput(errorText);
       }
@@ -127,10 +132,15 @@ function App() {
       
       if (error.response && error.response.data) {
         const errorData = error.response.data;
-        errorMessage += `Error: ${errorData.error}\n`;
         
         if (errorData.errors && errorData.errors.length > 0) {
-          errorMessage += '\nDetails:\n' + errorData.errors.join('\n');
+          // Extract just the essential Compact error
+          const fullError = errorData.errors.join('\n');
+          const compactError = extractCompactError(fullError);
+          errorMessage += compactError;
+        } else if (errorData.error) {
+          const compactError = extractCompactError(errorData.error);
+          errorMessage += compactError;
         }
       } else {
         errorMessage += `Network Error: ${error.message}`;
@@ -191,11 +201,14 @@ function App() {
         let errorText = '❌ Compile and Build Failed\n\n';
 
         if (response.data.errors && response.data.errors.length > 0) {
-          errorText += '--- Errors ---\n' + response.data.errors.join('\n') + '\n\n';
-        }
-        
-        if (response.data.output) {
-          errorText += '--- Compile and Build Output ---\n' + response.data.output;
+          // Extract just the essential Compact error instead of showing full output
+          const fullError = response.data.errors.join('\n');
+          const compactError = extractCompactError(fullError);
+          errorText += compactError;
+        } else if (response.data.output) {
+          // Also try to extract error from output if no specific errors array
+          const compactError = extractCompactError(response.data.output);
+          errorText += compactError;
         }
         
         setOutput(errorText);
@@ -205,10 +218,15 @@ function App() {
       
       if (error.response && error.response.data) {
         const errorData = error.response.data;
-        errorMessage += `Error: ${errorData.error}\n`;
         
         if (errorData.errors && errorData.errors.length > 0) {
-          errorMessage += '\nDetails:\n' + errorData.errors.join('\n');
+          // Extract just the essential Compact error
+          const fullError = errorData.errors.join('\n');
+          const compactError = extractCompactError(fullError);
+          errorMessage += compactError;
+        } else if (errorData.error) {
+          const compactError = extractCompactError(errorData.error);
+          errorMessage += compactError;
         }
       } else {
         errorMessage += `Network Error: ${error.message}`;
@@ -243,6 +261,55 @@ function App() {
     } catch (error) {
       setOutput(`❌ Error executing function ${functionName}: ${error.message}`);
     }
+  };
+
+  // Function to extract just the essential Compact compiler error
+  const extractCompactError = (errorText) => {
+    if (!errorText) return errorText;
+    
+    // Split into lines and filter out unwanted lines
+    const lines = errorText.split('\n');
+    const filteredLines = lines.filter(line => {
+      const trimmedLine = line.trim();
+      // Remove lines starting with npm
+      if (trimmedLine.startsWith('npm ')) return false;
+      // Remove lines starting with >
+      if (trimmedLine.startsWith('>')) return false;
+      // Remove empty lines
+      if (!trimmedLine) return false;
+      return true;
+    });
+    
+    // Look for the main Exception line
+    const exceptionLine = filteredLines.find(line => 
+      line.includes('Exception:') && 
+      (line.includes('bboard.compact') || line.includes('witnesses.ts') || line.includes('.compact') || line.includes('.ts'))
+    );
+    
+    if (exceptionLine) {
+      // Find the detailed error message that follows
+      const exceptionIndex = filteredLines.indexOf(exceptionLine);
+      let errorMessage = exceptionLine;
+      
+      // Check if the next line contains additional error details
+      if (exceptionIndex + 1 < filteredLines.length) {
+        const nextLine = filteredLines[exceptionIndex + 1].trim();
+        if (nextLine && !nextLine.includes('npm ') && !nextLine.startsWith('>')) {
+          errorMessage += '\n' + nextLine;
+        }
+      }
+      
+      return errorMessage.trim();
+    }
+    
+    // If no Exception found, look for TypeScript errors
+    const tsError = filteredLines.find(line => line.includes('error TS'));
+    if (tsError) {
+      return tsError.trim();
+    }
+    
+    // If no specific error pattern found, return the filtered text
+    return filteredLines.join('\n').trim();
   };
 
   const getCurrentCode = () => {

@@ -208,11 +208,7 @@ function App() {
           const compactError = extractCompactError(response.data.output);
           errorText += compactError;
           
-          // Add debug info in frontend
-          errorText += '\n\n🔍 Debug Info:\n';
-          errorText += `Server Output Available: ${!!response.data.output}\n`;
-          errorText += `Errors Array Length: ${response.data.errors?.length || 0}\n`;
-          
+      
         } else if (response.data.errors && response.data.errors.length > 0) {
           // Fallback to errors array
           const fullError = response.data.errors.join('\n');
@@ -280,7 +276,16 @@ function App() {
     // Console log the full error for debugging
     console.log('🔍 FULL ERROR TEXT:', errorText);
     
-    // First, look for TypeScript errors in the full text (before filtering)
+    // First, look for TypeScript errors with file location in the full text
+    const tsErrorWithLocationMatch = errorText.match(/([\w/.]+\.ts)\((\d+),(\d+)\):\s*(error TS\d+:[^}]+)/);
+    if (tsErrorWithLocationMatch) {
+      const [, fileName, line, column, errorMsg] = tsErrorWithLocationMatch;
+      const formattedError = `${fileName} line ${line}, column ${column}:\n${errorMsg}`;
+      console.log('🔍 FOUND TS ERROR WITH LOCATION:', formattedError);
+      return formattedError.trim();
+    }
+    
+    // Fallback: look for TypeScript errors without location info
     const tsErrorMatch = errorText.match(/error TS\d+:[^}]+/);
     if (tsErrorMatch) {
       console.log('🔍 FOUND TS ERROR IN FULL TEXT:', tsErrorMatch[0]);

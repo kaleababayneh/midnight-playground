@@ -4,7 +4,7 @@ import axios from 'axios';
 import { Play, Moon, Code, Terminal } from 'lucide-react';
 import { configureCompactLanguage, compactExamples } from './monaco/compactLanguage';
 
-const NODE_ENV = 'production';
+const NODE_ENV = 'development'; // Change to 'production' for production build
 
 // API Base URL - points to your actual backend server
 const API_BASE_URL = NODE_ENV === 'production' 

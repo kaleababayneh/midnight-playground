@@ -4,7 +4,7 @@ import CompactStandardLibrary;
 export ledger count: Counter;
 
 export circuit increment(value: Uint<16>): [] {
-  count.increment(disclose(value));
+  count.increment((value));
 }
 
 export circuit decrement(value: Uint<16>): [] {

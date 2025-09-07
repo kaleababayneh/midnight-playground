@@ -1,10 +1,3 @@
-// Compact Language Configuration for Monaco Editor
-// Based on official VS Code Compact extension (compact-0.2.13)
-
-/**
- * Monaco Monarch tokenizer for Compact language
- * Extracted from official VS Code extension VSIX file
- */
 export const compactTokenizer = {
   tokenizer: {
     root: [
@@ -62,10 +55,7 @@ export const compactTokenizer = {
   },
 };
 
-/**
- * Language configuration for Compact
- * Based on official VS Code extension language-configuration.json
- */
+
 export const compactLanguageConfig = {
   comments: {
     lineComment: '//',
@@ -183,24 +173,24 @@ export const configureCompactLanguage = (monaco) => {
  * Example Compact contracts for testing syntax highlighting
  */
 export const compactExamples = {
-  counter: `pragma language_version 0.16;
+  counter: `pragma language_version 0.17;
 import CompactStandardLibrary;
 
 export ledger count: Counter;
 
 export circuit increment(value: Uint<16>): [] {
-  count.increment(value);
+  count.increment(disclose(value));
 }
 
 export circuit decrement(value: Uint<16>): [] {
-  count.decrement(value);
+  count.decrement(disclose(value));
 }
 
 export circuit get_count(): Uint<64> {
   return count;
 }`,
 
-  voting: `pragma language_version 0.16;
+  voting: `pragma language_version 0.17;
 import CompactStandardLibrary;
 
 export ledger votes_for: Counter;
@@ -218,20 +208,17 @@ export circuit get_results(): [Uint<64>, Uint<64>] {
   return [votes_for, votes_against];
 }`,
 
-  message: `pragma language_version 0.16;
+  message: `pragma language_version 0.17;
+
 import CompactStandardLibrary;
 
-export ledger messages: Vector<Opaque<"string">>;
+export ledger messages: List<Opaque<"string">>;
 
 export circuit post_message(message: Opaque<"string">): [] {
-  messages.push(message);
-}
-
-export circuit get_messages(): Vector<Opaque<"string">> {
-  return messages;
+  messages.pushFront(disclose(message));
 }
 
 export circuit get_message_count(): Uint<64> {
   return messages.length();
-}`
-};
+}`,
+}

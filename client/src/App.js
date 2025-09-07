@@ -4,17 +4,17 @@ import axios from 'axios';
 import { Play, Moon, Code, Terminal } from 'lucide-react';
 import { configureCompactLanguage, compactExamples } from './monaco/compactLanguage';
 
-const EXAMPLE_CODE =  `pragma language_version 0.16;
+const EXAMPLE_CODE =  `pragma language_version 0.17;
 import CompactStandardLibrary;
 
 export ledger count: Counter;
 
 export circuit increment(value: Uint<16>): [] {
-  count.increment(value);
+  count.increment(disclose(value));
 }
 
 export circuit decrement(value: Uint<16>): [] {
-  count.decrement(value);
+  count.decrement(disclose(value));
 }
 
 export circuit get_count(): Uint<64> {

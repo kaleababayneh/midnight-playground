@@ -1,13 +1,13 @@
 pragma language_version 0.17;
+
 import CompactStandardLibrary;
 
-export ledger count: Counter;
-witness local_key_secret(): Uint<6;
+export ledger messages: List<Opaque<"string">>;
 
-export circuit increment(value: Uint<16>): [] {
-  count.increment(disclose(value));
+export circuit post_message(message: Opaque<"string">): [] {
+  messages.pushFront(disclose(message));
 }
 
-export circuit get_count(): Uint<64> {
-  return count;
+export circuit get_message_count(): Uint<64> {
+  return messages.length();
 }

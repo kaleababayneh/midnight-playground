@@ -38,11 +38,11 @@ class WorkspaceManager {
 
   async compile() {
     try {
-      console.log('Starting compilation in workspace...');
+      console.log('Starting compilation...');
       
-      // Compile the contract using npm run compile (which just compiles, doesn't build)
+      // Compile the contract using npm run compile (now runs from server directory)
       const compileResult = await execAsync('npm run compile', {
-        cwd: this.workspaceDir,
+        cwd: __dirname, // Run from server directory instead of workspace
         timeout: 60000, // 1 minute timeout
         maxBuffer: 1024 * 1024 // 1MB buffer for output
       });
@@ -87,11 +87,11 @@ class WorkspaceManager {
 
   async deploy() {
     try {
-      console.log('Starting deployment in workspace...');
+      console.log('Starting deployment...');
       
        // First compile the contract
       const compileResult = await execAsync('npm run contract', {
-        cwd: this.workspaceDir,
+        cwd: __dirname, // Run from server directory instead of workspace
         timeout: 60000, // 1 minute timeout
         maxBuffer: 1024 * 1024 // 1MB buffer for output
       });

@@ -12,7 +12,7 @@ app.use(cors({
     'http://localhost:3000',
     'https://midnight-playground-one.vercel.app',
     'https://midnight-playground.vercel.app',
-    'https://*.vercel.app' // Allow all Vercel subdomains
+    'https://*.vercel.app' 
   ],
   credentials: true
 }));
@@ -66,30 +66,6 @@ app.get('/api/examples', (req, res) => {
       examples
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      error: error.message
-    });
-  }
-});
-
-// Execute contract function
-app.post('/api/execute', async (req, res) => {
-  try {
-    const { functionName, args } = req.body;
-    
-    if (!functionName) {
-      return res.status(400).json({
-        success: false,
-        error: 'Function name is required'
-      });
-    }
-
-    console.log('Executing function:', functionName, 'with args:', args);
-    const result = await workspaceManager.executeFunction(functionName, args);
-    res.json(result);
-  } catch (error) {
-    console.error('Function execution error:', error);
     res.status(500).json({
       success: false,
       error: error.message

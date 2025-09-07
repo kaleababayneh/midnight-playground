@@ -6,54 +6,8 @@ import { configureCompactLanguage, compactExamples } from './monaco/compactLangu
 
 
 
-const CONTRACT_COMPACT = `
-pragma language_version >= 0.16 && <= 0.17;
+const CONTRACT_COMPACT = ""
 
-import CompactStandardLibrary;
-
-export enum State {
-  VACANT,
-  OCCUPIED
-}
-
-export ledger state: State;
-
-export ledger message: Maybe<Opaque<"string">>;
-
-export ledger sequence: Counter;
-
-export ledger owner: Bytes<32>;
-
-constructor() {
-  state = State.VACANT;
-  message = none<Opaque<"string">>();
-  sequence.increment(1);
-}
-
-witness localSecretKey(): Bytes<32>;
-
-export circuit post(newMessage: Opaque<"string">): [] {
-  assert(state == State.VACANT, "Attempted to post to an occupied board");
-  owner = disclose(publicKey(localSecretKey(), sequence as Field as Bytes<32>));
-  message = disclose(some<Opaque<"string">>(newMessage));
-  state = State.OCCUPIED;
-}
-
-export circuit takeDown(): Opaque<"string"> {
-  assert(state == State.OCCUPIED, "Attempted to take down post from an empty board");
-  assert(owner == publicKey(localSecretKey(), sequence as Field as Bytes<32>), "Attempted to take down post, but not the current owner");
-  const formerMsg = message.value;
-  state = State.VACANT;
-  sequence.increment(1);
-  message = none<Opaque<"string">>();
-  return formerMsg;
-}
-
-export circuit publicKey(sk: Bytes<32>, sequence: Bytes<32>): Bytes<32> {
-  return persistentHash<Vector<3, Bytes<32>>>([pad(32, "bboard:pk:"), sequence, sk]);
-}`;
-
-const EXAMPLE_CODE = CONTRACT_COMPACT;
 const WITNESSES_TS = `import { Ledger } from "./managed/bboard/contract/index.cjs";
 import { WitnessContext } from "@midnight-ntwrk/compact-runtime";
 
@@ -513,19 +467,10 @@ function App() {
               <div className="output-info">
                 <div className="example-code">
                   <h3>🌙 Welcome to Compact Midnight IDE!</h3>
-                  <p>Write real Compact smart contracts and compile them using your create-midnight-app integration. Click "Compile Contract" or press Ctrl+Enter to build your contract.</p>
+                  <p>Write real Compact smart contracts and compile them using compact web ide. Click "Compile Contract" or "Compile & Build" to build your contract.</p>
                   
-                  <h3 style={{ marginTop: '16px' }}>🚀 Powered by create-midnight-app v2.1.7</h3>
-                  <p>This IDE uses your create-midnight-app npm package for real Compact compilation, auto-generated CLIs, and deployment capabilities.</p>
-                  
-                  <h3 style={{ marginTop: '16px' }}>📝 Compact Language Features:</h3>
-                  <pre>{`• Pragma declarations: pragma language_version 0.15;
-• Imports: import CompactStandardLibrary;
-• Ledger state: export ledger count: Counter;
-• Circuit functions: export circuit increment(value: Uint<16>): []
-• Type system: Uint<16>, Counter, Vector<T>, Opaque<"string">
-• Standard library: increment(), decrement(), push(), pop()
-• Comments: // single line, /* multi line */`}</pre>
+              
+              
                   
                   <h3 style={{ marginTop: '16px' }}>🔧 Try the Examples:</h3>
                   <p>Use the example buttons above to load pre-built contracts: Counter, Voting, and Message contracts.</p>

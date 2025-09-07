@@ -15,5 +15,5 @@ export const witnesses = {
   }: WitnessContext<Ledger, BBoardPrivateState>): [
     BBoardPrivateState,
     Uint8Array,
-  ] => [privateState, privateState.secretKey
+  ] => [privateState, privateState.secretKey],
 }; 

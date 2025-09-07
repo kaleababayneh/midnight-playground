@@ -378,7 +378,7 @@ class WorkspaceManager {
   getExampleContracts() {
     return {
       bboard: `
-pragma language_version >= 0.16 && <= 0.17;
+pragma language_version 0.17;
 
 import CompactStandardLibrary;
 

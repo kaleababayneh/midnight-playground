@@ -82,10 +82,7 @@ export const compactLanguageConfig = {
   ]
 };
 
-/**
- * Compact Midnight theme for Monaco Editor
- * Colors match VS Code Dark+ theme for consistency
- */
+
 export const compactMidnightTheme = {
   base: 'vs-dark',
   inherit: true,
@@ -130,10 +127,6 @@ export const compactMidnightTheme = {
   },
 };
 
-/**
- * Configure Monaco Editor for Compact language
- * @param {object} monaco - Monaco editor instance
- */
 export const configureCompactLanguage = (monaco) => {
   if (!monaco) {
     console.error('❌ Monaco editor instance not provided');
@@ -169,9 +162,7 @@ export const configureCompactLanguage = (monaco) => {
   }
 };
 
-/**
- * Example Compact contracts for testing syntax highlighting
- */
+
 export const compactExamples = {
   counter: `pragma language_version 0.17;
 import CompactStandardLibrary;

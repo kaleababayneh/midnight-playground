@@ -3,7 +3,6 @@
   "version": "1.0.0",
   "description": "Backend server for Compact Midnight IDE",
   "main": "index.js",
-  "type": "module",
   "workspaces": {
     "packages": [
       "workspace/bboard-cli",

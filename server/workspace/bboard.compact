@@ -2,13 +2,10 @@ pragma language_version 0.17;
 import CompactStandardLibrary;
 
 export ledger count: Counter;
+witness local_key_secret(): Uint<6;
 
 export circuit increment(value: Uint<16>): [] {
   count.increment(disclose(value));
-}
-
-export circuit decrement(value: Uint<16>): [] {
-  count.decrement(disclose(value));
 }
 
 export circuit get_count(): Uint<64> {

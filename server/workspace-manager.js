@@ -37,17 +37,16 @@ class WorkspaceManager {
       console.log('Contract compiled successfully');
 
       // Then run the CLI with automatic exit
-      const cliResult = await this.runCLIWithAutoExit();
+      //const cliResult = await this.runCLIWithAutoExit();
 
       // Parse the output to extract function information
-      const functions = this.parseFunctionsFromOutput(cliResult.output);
+      //const functions = this.parseFunctionsFromOutput(cliResult.output);
       
       return {
         success: true,
-        output: `Contract Compilation:\n${compileResult.stdout}\n\nDeployment & CLI:\n${cliResult.output}`,
-        errors: cliResult.errors,
-        functions: functions,
-        timestamp: Date.now()
+        // output: `Contract Compilation:\n${compileResult.stdout}\n\nDeployment & CLI:\n${cliResult.output}`,
+        // errors: cliResult.errors,
+        // functions: functions,
       };
 
     } catch (error) {

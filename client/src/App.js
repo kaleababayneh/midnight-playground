@@ -162,7 +162,7 @@ function App() {
           outputText += '--- Warnings ---\n' + response.data.errors.join('\n') + '\n\n';
         }
         
-        outputText += `⏱️ Deployed at ${new Date().toLocaleTimeString()}`;
+        
         
         setOutput(outputText);
         setLastCompileTime(new Date().toLocaleTimeString());

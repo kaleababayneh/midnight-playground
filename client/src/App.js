@@ -10,51 +10,7 @@ const API_BASE_URL = NODE_ENV === 'production'
   ? 'https://midnight.wego.pics' 
   : 'http://localhost:3001';
 
-const CONTRACT_COMPACT = `pragma language_version 0.16;
-
-import CompactStandardLibrary;
-
-export enum State {
-  VACANT,
-  OCCUPIED
-}
-
-export ledger state: State;
-
-export ledger message: Maybe<Opaque<"string">>;
-
-export ledger sequence: Counter;
-
-export ledger owner: Bytes<32>;
-
-constructor() {
-  state = State.VACANT;
-  message = none<Opaque<"string">>();
-  sequence.increment(1);
-}
-
-witness localSecretKey(): Bytes<32>;
-
-export circuit post(newMessage: Opaque<"string">): [] {
-  assert(state == State.VACANT, "Attempted to post to an occupied board");
-  owner = disclose(publicKey(localSecretKey(), sequence as Field as Bytes<32>));
-  message = disclose(some<Opaque<"string">>(newMessage));
-  state = State.OCCUPIED;
-}
-
-export circuit takeDown(): Opaque<"string"> {
-  assert(state == State.OCCUPIED, "Attempted to take down post from an empty board");
-  assert(owner == publicKey(localSecretKey(), sequence as Field as Bytes<32>), "Attempted to take down post, but not the current owner");
-  const formerMsg = message.value;
-  state = State.VACANT;
-  sequence.increment(1);
-  message = none<Opaque<"string">>();
-  return formerMsg;
-}
-
-export circuit publicKey(sk: Bytes<32>, sequence: Bytes<32>): Bytes<32> {
-  return persistentHash<Vector<3, Bytes<32>>>([pad(32, "bboard:pk:"), sequence, sk]);
-}`;
+const CONTRACT_COMPACT = ``;
 
 const WITNESSES_TS = `import { Ledger } from "./managed/bboard/contract/index.cjs";
 import { WitnessContext } from "@midnight-ntwrk/compact-runtime";

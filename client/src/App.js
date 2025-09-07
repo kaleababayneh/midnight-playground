@@ -200,14 +200,24 @@ function App() {
       } else {
         let errorText = '❌ Compile and Build Failed\n\n';
 
-        if (response.data.errors && response.data.errors.length > 0) {
-          // Extract just the essential Compact error instead of showing full output
-          const fullError = response.data.errors.join('\n');
-          const compactError = extractCompactError(fullError);
-          errorText += compactError;
-        } else if (response.data.output) {
-          // Also try to extract error from output if no specific errors array
+        console.log('🔍 SERVER RESPONSE DATA:', response.data);
+
+        // Check output first as it often contains the actual TypeScript errors
+        if (response.data.output) {
+          console.log('🔍 CALLING extractCompactError WITH OUTPUT:', response.data.output);
           const compactError = extractCompactError(response.data.output);
+          errorText += compactError;
+          
+          // Add debug info in frontend
+          errorText += '\n\n🔍 Debug Info:\n';
+          errorText += `Server Output Available: ${!!response.data.output}\n`;
+          errorText += `Errors Array Length: ${response.data.errors?.length || 0}\n`;
+          
+        } else if (response.data.errors && response.data.errors.length > 0) {
+          // Fallback to errors array
+          const fullError = response.data.errors.join('\n');
+          console.log('🔍 CALLING extractCompactError WITH ERRORS:', fullError);
+          const compactError = extractCompactError(fullError);
           errorText += compactError;
         }
         
@@ -267,10 +277,27 @@ function App() {
   const extractCompactError = (errorText) => {
     if (!errorText) return errorText;
     
+    // Console log the full error for debugging
+    console.log('🔍 FULL ERROR TEXT:', errorText);
+    
+    // First, look for TypeScript errors in the full text (before filtering)
+    const tsErrorMatch = errorText.match(/error TS\d+:[^}]+/);
+    if (tsErrorMatch) {
+      console.log('🔍 FOUND TS ERROR IN FULL TEXT:', tsErrorMatch[0]);
+      return tsErrorMatch[0].trim();
+    }
+    
     // Split into lines and filter out unwanted lines
     const lines = errorText.split('\n');
+    console.log('🔍 ALL LINES:', lines);
+    
     const filteredLines = lines.filter(line => {
       const trimmedLine = line.trim();
+      // Keep lines that contain "witness" (even if they start with npm or >)
+      if (trimmedLine.toLowerCase().includes('witness')) {
+        console.log('🔍 KEEPING WITNESS LINE:', trimmedLine);
+        return true;
+      }
       // Remove lines starting with npm
       if (trimmedLine.startsWith('npm ')) return false;
       // Remove lines starting with >
@@ -280,11 +307,15 @@ function App() {
       return true;
     });
     
+    console.log('🔍 FILTERED LINES:', filteredLines);
+    
     // Look for the main Exception line
     const exceptionLine = filteredLines.find(line => 
       line.includes('Exception:') && 
       (line.includes('bboard.compact') || line.includes('witnesses.ts') || line.includes('.compact') || line.includes('.ts'))
     );
+    
+    console.log('🔍 EXCEPTION LINE FOUND:', exceptionLine);
     
     if (exceptionLine) {
       // Find the detailed error message that follows
@@ -299,17 +330,57 @@ function App() {
         }
       }
       
+      console.log('🔍 RETURNING EXCEPTION MESSAGE:', errorMessage);
       return errorMessage.trim();
+    }
+    
+    // Look for witnesses-related errors specifically (any line containing "witness")
+    const witnessErrorLines = filteredLines.filter(line => {
+      // Use regex to find "witness" anywhere in the line (case insensitive)
+      const witnessRegex = /witness/i;
+      return witnessRegex.test(line);
+    });
+    
+    console.log('🔍 WITNESS ERROR LINES FOUND:', witnessErrorLines);
+    
+    if (witnessErrorLines.length > 0) {
+      console.log('🔍 RETURNING WITNESS ERROR:', witnessErrorLines.join('\n'));
+      return witnessErrorLines.join('\n').trim();
+    }
+    
+    // Look for build failures that might be TypeScript/witnesses related
+    const buildFailureLines = filteredLines.filter(line => {
+      return line.includes('build failed') || 
+             line.includes('tsc ') || 
+             line.includes('TypeScript') ||
+             line.includes('tsconfig') ||
+             (line.includes('Lifecycle script') && line.includes('build'));
+    });
+    
+    console.log('🔍 BUILD FAILURE LINES FOUND:', buildFailureLines);
+    
+    if (buildFailureLines.length > 0) {
+      // Add a helpful message for TypeScript build failures
+      const buildErrorMessage = buildFailureLines.join('\n') + '\n\n' + 
+                               '💡 This appears to be a TypeScript compilation error.\n' +
+                               'Check your witnesses.ts file for syntax errors, type issues, or missing imports.';
+      console.log('🔍 RETURNING BUILD FAILURE:', buildErrorMessage);
+      return buildErrorMessage;
     }
     
     // If no Exception found, look for TypeScript errors
     const tsError = filteredLines.find(line => line.includes('error TS'));
+    console.log('🔍 TS ERROR FOUND:', tsError);
+    
     if (tsError) {
+      console.log('🔍 RETURNING TS ERROR:', tsError);
       return tsError.trim();
     }
     
     // If no specific error pattern found, return the filtered text
-    return filteredLines.join('\n').trim();
+    const finalResult = filteredLines.join('\n').trim();
+    console.log('🔍 RETURNING FINAL FILTERED TEXT:', finalResult);
+    return finalResult;
   };
 
   const getCurrentCode = () => {

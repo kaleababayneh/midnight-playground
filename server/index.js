@@ -12,6 +12,7 @@ app.use(cors({
     'http://localhost:3000',
     'https://midnight-playground-one.vercel.app',
     'https://midnight-playground.vercel.app',
+    'https://midnight.expert',
     'https://*.vercel.app' 
   ],
   credentials: true

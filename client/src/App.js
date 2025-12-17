@@ -4,12 +4,8 @@ import axios from 'axios';
 import { Play, Moon, Code, Terminal } from 'lucide-react';
 import { configureCompactLanguage, compactExamples } from './monaco/compactLanguage';
 
-const NODE_ENV = 'production';
-
-// API Base URL - points to your actual backend server
-const API_BASE_URL = NODE_ENV === 'production' 
-  ? 'https://midnight.wego.pics' 
-  : 'http://localhost:3001';
+// API Base URL - use localhost for development until production server is fixed
+const API_BASE_URL = 'https://midnight.wego.pics';
 
 const CONTRACT_COMPACT = ``;
 

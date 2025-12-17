@@ -6,28 +6,17 @@ const { WorkspaceManager } = require('./workspace-manager');
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// Handle preflight requests for all routes
-app.options('*', cors());
-
 // Middleware
 app.use(cors({
-  origin: '*',  // Allow all origins for debugging
-  credentials: false,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Origin', 'X-Requested-With']
+  origin: [
+    'http://localhost:3000',
+    'https://midnight-playground-one.vercel.app',
+    'https://midnight-playground.vercel.app',
+    'https://midnight.expert'
+  ],
+  credentials: true
 }));
 app.use(bodyParser.json({ limit: '10mb' }));
-
-// Log all requests for debugging
-app.use((req, res, next) => {
-  console.log(`${new Date().toISOString()} - ${req.method} ${req.path} from ${req.headers.origin || 'unknown'}`);
-  next();
-});
-
-// Root route
-app.get('/', (req, res) => {
-  res.json({ status: 'OK', message: 'Compact Midnight IDE Server is running', port: PORT });
-});
 
 // Initialize Workspace Manager
 const workspaceManager = new WorkspaceManager();
@@ -116,7 +105,7 @@ app.get('/api/health', (req, res) => {
 });
 
 // Start server
-app.listen(PORT, '0.0.0.0', () => {
+app.listen(PORT, () => {
   console.log(`🌙 Compact Midnight IDE Server running on port ${PORT}`);
   console.log(`📦 Using workspace deployment with npm run deploy`);
   console.log(`🚀 Ready to compile and deploy Compact contracts`);

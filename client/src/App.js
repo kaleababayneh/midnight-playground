@@ -4,7 +4,7 @@ import axios from 'axios';
 import { Play, Moon, Code, Terminal } from 'lucide-react';
 import { configureCompactLanguage, compactExamples } from './monaco/compactLanguage';
 
-// API Base URL - use localhost for development until production server is fixed
+// API Base URL - production backend
 const API_BASE_URL = 'https://midnight.wego.pics';
 
 const CONTRACT_COMPACT = ``;

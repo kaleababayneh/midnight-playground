@@ -8,18 +8,23 @@ const PORT = process.env.PORT || 3001;
 
 // Middleware
 app.use(cors({
-  origin: [
-    'http://localhost:3000',
-    'https://midnight-playground-one.vercel.app',
-    'https://midnight-playground.vercel.app',
-    'https://midnight.expert',
-    'https://*.vercel.app' 
-  ],
-  credentials: true,
+  origin: '*',  // Allow all origins for debugging
+  credentials: false,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 app.use(bodyParser.json({ limit: '10mb' }));
+
+// Log all requests for debugging
+app.use((req, res, next) => {
+  console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
+  next();
+});
+
+// Root route
+app.get('/', (req, res) => {
+  res.json({ status: 'OK', message: 'Compact Midnight IDE Server is running' });
+});
 
 // Initialize Workspace Manager
 const workspaceManager = new WorkspaceManager();

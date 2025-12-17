@@ -9,6 +9,7 @@
     "module": "ESNext",
     "moduleResolution": "node",
     "allowJs": true,
+    "allowArbitraryExtensions": true,
     "forceConsistentCasingInFileNames": true,
     "noImplicitAny": true,
     "strict": true,

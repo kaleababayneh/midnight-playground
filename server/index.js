@@ -73,6 +73,40 @@ app.get('/api/examples', (req, res) => {
   }
 });
 
+// Debug endpoint to check managed files
+app.get('/api/debug/managed-files', async (req, res) => {
+  const fs = require('fs').promises;
+  const path = require('path');
+  
+  try {
+    const managedPath = path.join(__dirname, 'workspace', 'contract', 'src', 'managed', 'bboard', 'contract');
+    const files = await fs.readdir(managedPath).catch(() => []);
+    
+    const fileContents = {};
+    for (const file of files) {
+      const filePath = path.join(managedPath, file);
+      const stat = await fs.stat(filePath);
+      if (stat.isFile()) {
+        fileContents[file] = {
+          exists: true,
+          size: stat.size
+        };
+      }
+    }
+    
+    res.json({
+      managedPath,
+      files: files.length > 0 ? files : 'No files found',
+      fileContents
+    });
+  } catch (error) {
+    res.json({
+      error: error.message,
+      stack: error.stack
+    });
+  }
+});
+
 // Deploy contract (compile and deploy to testnet)
 app.post('/api/deploy', async (req, res) => {
   try {

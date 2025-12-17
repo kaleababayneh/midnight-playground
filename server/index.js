@@ -6,24 +6,27 @@ const { WorkspaceManager } = require('./workspace-manager');
 const app = express();
 const PORT = process.env.PORT || 3001;
 
+// Handle preflight requests for all routes
+app.options('*', cors());
+
 // Middleware
 app.use(cors({
   origin: '*',  // Allow all origins for debugging
   credentials: false,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Origin', 'X-Requested-With']
 }));
 app.use(bodyParser.json({ limit: '10mb' }));
 
 // Log all requests for debugging
 app.use((req, res, next) => {
-  console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
+  console.log(`${new Date().toISOString()} - ${req.method} ${req.path} from ${req.headers.origin || 'unknown'}`);
   next();
 });
 
 // Root route
 app.get('/', (req, res) => {
-  res.json({ status: 'OK', message: 'Compact Midnight IDE Server is running' });
+  res.json({ status: 'OK', message: 'Compact Midnight IDE Server is running', port: PORT });
 });
 
 // Initialize Workspace Manager

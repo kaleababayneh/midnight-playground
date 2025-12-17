@@ -10,8 +10,8 @@ WORKDIR /app
 # Copy package files from server directory
 COPY server/package*.json ./
 
-# Install dependencies
-RUN npm ci --only=production
+# Install dependencies (including devDependencies for TypeScript)
+RUN npm ci
 
 # Copy all server files including workspace with compcomp binaries
 COPY server/ ./

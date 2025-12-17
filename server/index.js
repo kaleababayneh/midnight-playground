@@ -108,7 +108,7 @@ app.get('/api/health', (req, res) => {
 });
 
 // Start server
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`🌙 Compact Midnight IDE Server running on port ${PORT}`);
   console.log(`📦 Using workspace deployment with npm run deploy`);
   console.log(`🚀 Ready to compile and deploy Compact contracts`);

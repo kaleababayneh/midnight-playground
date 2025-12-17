@@ -1,6 +1,9 @@
 # Use Node.js 18 base image
 FROM node:18-alpine
 
+# Install bash for compactc script
+RUN apk add --no-cache bash
+
 # Set working directory to server
 WORKDIR /app
 
@@ -13,8 +16,8 @@ RUN npm ci --only=production
 # Copy all server files including workspace with compcomp binaries
 COPY server/ ./
 
-# Make compactc executable
-RUN chmod +x ./workspace/contract/compcomp/compactc || true
+# Make compactc and all binaries executable
+RUN chmod +x ./workspace/contract/compcomp/* || true
 
 # Expose port
 EXPOSE 3001

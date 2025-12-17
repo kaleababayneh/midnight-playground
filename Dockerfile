@@ -10,8 +10,11 @@ COPY server/package*.json ./
 # Install dependencies
 RUN npm ci --only=production
 
-# Copy all server files
+# Copy all server files including workspace with compcomp binaries
 COPY server/ ./
+
+# Make compactc executable
+RUN chmod +x ./workspace/contract/compcomp/compactc || true
 
 # Expose port
 EXPOSE 3001
